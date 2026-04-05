@@ -567,7 +567,7 @@ export default function VisitDetails() {
                     <strong>Time Spent(In Hours):</strong> {visit.time_spent || 'N/A'}
                 </div>
                 <div style={{ marginBottom: '10px' }}>
-                    <strong>Travel Time:</strong> {visit.travel_time || 'N/A'}
+                    <strong>Travel Time(In Hours):</strong> {visit.travel_time || 'N/A'}
                 </div>
                 
                 <div style={{ marginBottom: '10px' }}>
