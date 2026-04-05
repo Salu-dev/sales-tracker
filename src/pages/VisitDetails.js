@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { getCurrentLocation } from '../utils/location';
 import { getCSRFToken } from '../utils/csrf';
 import { getBackendUrl } from '../utils/backend';
+import { hasSalesRole } from '../utils/user';
 
 export default function VisitDetails() {
     const [visit, setVisit] = useState(null);
@@ -15,13 +16,20 @@ export default function VisitDetails() {
     const [startDateTime, setStartDateTime] = useState('');
     const [notes, setNotes] = useState('');
     const [showNotesField, setShowNotesField] = useState(false);
+    const [hasSalesAccess, setHasSalesAccess] = useState(false);
     const navigate = useNavigate();
     const { visitId } = useParams();
 
    
     useEffect(() => {
         fetchVisitDetails();
+        checkUserRole();
     }, [visitId]);
+
+    const checkUserRole = async () => {
+        const salesAccess = await hasSalesRole();
+        setHasSalesAccess(salesAccess);
+    };
 
     const fetchVisitDetails = async () => {
         try {
@@ -263,14 +271,8 @@ export default function VisitDetails() {
                 fetchVisitDetails();
                 setNotes('');
                 setShowNotesField(false);
-            } else {
-                console.error('Notes Update Error:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    data: data
-                });
-                // setError(data.message || data.exc || `Failed to update notes (${response.status}: ${response.statusText})`);
-            }
+            } 
+            
         } catch (err) {
             setError(err.message || 'Failed to update notes');
         } finally {
@@ -291,6 +293,58 @@ export default function VisitDetails() {
              <div style={{ marginTop: '20px' }}>
                     {(visit.status?.toLowerCase() === 'scheduled') ? (
                         <>
+                            { (
+                                <button 
+                                    onClick={handleCancelVisit}
+                                    disabled={updating}
+                                    style={{ 
+                                        padding: '8px 16px', 
+                                        backgroundColor: '#dc3545', 
+                                        color: 'white', 
+                                        border: 'none',
+                                        cursor: updating ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {updating ? 'Processing...' : 'Cancel Visit'}
+                                </button>
+                            )}
+                            {hasSalesAccess && (
+                                <button 
+                                    onClick={handleStartVisit}
+                                    disabled={updating}
+                                    style={{ 
+                                        marginLeft: '10px', 
+                                        padding: '8px 16px',
+                                        backgroundColor: '#007bff',
+                                        color: 'white',
+                                        border: 'none',
+                                        cursor: updating ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {updating ? 'Processing...' : 'Start Travel'}
+                                </button>
+                            )}
+                        </>
+                    ):
+                    (visit.status?.toLowerCase()=== 'traveling') ? (
+                        <>
+                         {hasSalesAccess && (
+                            <button 
+                                    onClick={handleCheckIn}
+                                    disabled={updating}
+                                    style={{ 
+                                        marginRight: '10px', 
+                                        padding: '8px 16px',
+                                        backgroundColor: '#28a745',
+                                        color: 'white',
+                                        border: 'none',
+                                        cursor: updating ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {updating ? 'Processing...' : 'Check In'}
+                                </button>
+                         )}
+                         {hasSalesAccess && (
                             <button 
                                 onClick={handleCancelVisit}
                                 disabled={updating}
@@ -304,53 +358,41 @@ export default function VisitDetails() {
                             >
                                 {updating ? 'Processing...' : 'Cancel Visit'}
                             </button>
-                            <button 
-                                onClick={handleStartVisit}
-                                disabled={updating}
-                                style={{ 
-                                    marginLeft: '10px', 
-                                    padding: '8px 16px',
-                                    backgroundColor: '#007bff',
-                                    color: 'white',
-                                    border: 'none',
-                                    cursor: updating ? 'not-allowed' : 'pointer'
-                                }}
-                            >
-                                {updating ? 'Processing...' : 'Start Travel'}
-                            </button>
+                         )}
                         </>
-                    ):
-                    (visit.status?.toLowerCase()=== 'traveling') ? (
-                         <button 
-                                onClick={handleCheckIn}
-                                disabled={updating}
-                                style={{ 
-                                    marginRight: '10px', 
-                                    padding: '8px 16px',
-                                    backgroundColor: '#28a745',
-                                    color: 'white',
-                                    border: 'none',
-                                    cursor: updating ? 'not-allowed' : 'pointer'
-                                }}
-                            >
-                                {updating ? 'Processing...' : 'Check In'}
-                            </button>
                     ) : (visit.status?.toLowerCase() === 'in progress') ? (
                         <>
-                            <button 
-                                onClick={handleCheckOut}
-                                disabled={updating}
-                                style={{ 
-                                    marginRight: '10px', 
-                                    padding: '8px 16px',
-                                    backgroundColor: '#ffc107',
-                                    color: 'black',
-                                    border: 'none',
-                                    cursor: updating ? 'not-allowed' : 'pointer'
-                                }}
-                            >
-                                {updating ? 'Processing...' : 'Check Out'}
-                            </button>
+                            {hasSalesAccess && (
+                                <button 
+                                    onClick={handleCheckOut}
+                                    disabled={updating}
+                                    style={{ 
+                                        marginRight: '10px', 
+                                        padding: '8px 16px',
+                                        backgroundColor: '#ffc107',
+                                        color: 'black',
+                                        border: 'none',
+                                        cursor: updating ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {updating ? 'Processing...' : 'Check Out'}
+                                </button>
+                            )}
+                            {hasSalesAccess && (
+                                <button 
+                                    onClick={handleCancelVisit}
+                                    disabled={updating}
+                                    style={{ 
+                                        padding: '8px 16px', 
+                                        backgroundColor: '#dc3545', 
+                                        color: 'white', 
+                                        border: 'none',
+                                        cursor: updating ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {updating ? 'Processing...' : 'Cancel Visit'}
+                                </button>
+                            )}
                         </>
                     ) : (
                         <>
@@ -382,7 +424,7 @@ export default function VisitDetails() {
                 <h2>{visit.customer || visit.customer_name || 'N/A'}</h2>
                 
                 <div style={{ marginBottom: '10px' }}>
-                    <strong>Date:</strong> {visit.scheduled_date || visit.date || 'N/A'}
+                    <strong>Scheduled Date:</strong> {visit.scheduled_date || visit.date || 'N/A'}
                 </div>
                 
                 <div style={{ marginBottom: '10px' }}>
@@ -470,6 +512,12 @@ export default function VisitDetails() {
                 
                 <div style={{ marginBottom: '10px' }}>
                     <strong>Longitude:</strong> {visit.longitude || 'N/A'}
+                </div>
+                <div style={{ marginBottom: '10px' }}>
+                    <strong>Check-in Coordinates:</strong> {visit.check_in_coordinates || 'N/A'}
+                </div>
+                <div style={{ marginBottom: '10px' }}>
+                    <strong>Check-out Coordinates:</strong> {visit.check_out_coordinates || 'N/A'}
                 </div>
                 
                 {visit.lattitude && visit.longitude && (

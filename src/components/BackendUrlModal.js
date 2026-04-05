@@ -9,15 +9,11 @@ export default function BackendUrlModal({ onSave, initialUrl = '' }) {
         const storedUrl = localStorage.getItem('backendUrl');
         console.log('Stored backend URL:', storedUrl);
         
-        // Always show modal for testing - remove this after testing
-        setShow(true);
-        
-        // Uncomment this line for production
-        // if (!storedUrl || storedUrl.trim() === '') {
-        //     setShow(true);
-        // } else {
-        //     setBackendUrl(storedUrl);
-        // }
+        if (!storedUrl || storedUrl.trim() === '') {
+            setShow(true);
+        } else {
+            setBackendUrl(storedUrl);
+        }
     }, []);
 
     const handleSave = () => {

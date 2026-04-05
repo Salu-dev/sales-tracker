@@ -75,16 +75,25 @@ export default function CreateVisit() {
 
             if (response.ok) {
                 alert("Visit submitted successfully!");
-                // Reset form
                 setSelectedCustomer("");
                 setScheduledDate("")
             } else {
-                console.error('Submit Error:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    data: data
-                });
-                alert(data.message || data.exc || "Failed to submit visit");
+                let errorMessage = "Failed to submit visit";
+
+                if (data._server_messages) {
+                    try {
+                        const messages = JSON.parse(data._server_messages);
+                        const firstMsg = JSON.parse(messages[0]);
+                        errorMessage = firstMsg.message;
+                    } catch (e) {
+                        console.error("Error parsing server messages", e);
+                    }
+                } 
+                else if (data.message) {
+                    errorMessage = data.message;
+                }
+
+                alert(errorMessage);
             }
         } catch (err) {
             console.error(err);
