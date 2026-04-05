@@ -60,6 +60,7 @@ export default function CustomerList() {
                     {customers.map((customer) => (
                         <div key={customer.name} style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px' }}>
                             <h3>{customer.customer_name}</h3>
+                            <p><strong>Customer Type:</strong> {customer.customer_type}</p>
                             <p><strong>Email:</strong> {customer.email_id || 'N/A'}</p>
                             <p><strong>Phone:</strong> {customer.phone || 'N/A'}</p>
                             {/* <p><strong>Address:</strong> {customer.primary_address || 'N/A'}</p> */}

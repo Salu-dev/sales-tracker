@@ -1,16 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getBackendUrl } from '../utils/backend';
+import { getCurrentUser } from '../utils/user';
 
 export default function SideBar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    fetchCurrentUser();
+  }, []);
+
+  const fetchCurrentUser = async () => {
+    const userData = await getCurrentUser();
+    setCurrentUser(userData);
+  };
 
   const menuItems = [
     { path: '/home', label: 'Dashboard' },
     { path: '/customer-list', label: 'Customer' },
-    { path: '/visit-history', label: 'Visiting History' },
-    { path: '/scheduled-visit', label: 'Scheduled Visits' },
+    { path: '/visit-history', label: 'Visit History' },
+    { path: '/scheduled-visit', label: "Scheduled Visits" },
     { path: '/create-visit', label: 'Create Visit' },
   ];
 
@@ -42,6 +53,21 @@ export default function SideBar() {
       </nav>
       
       <div className="sidebar-footer">
+        {currentUser && (
+          <div style={{ 
+            padding: '10px', 
+            borderBottom: '1px solid #eee', 
+            fontSize: '12px',
+            color: '#666'
+          }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+              {currentUser.user}
+            </div>
+            <div>
+              {currentUser.roles && currentUser.roles.join(', ')}
+            </div>
+          </div>
+        )}
         <button className="sidebar-btn logout-btn" onClick={handleLogout}>
           {/* <span className="sidebar-icon">🚪</span> */}
           <span className="sidebar-label">Logout</span>

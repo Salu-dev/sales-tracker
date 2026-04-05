@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { getBackendUrl } from '../utils/backend';
 
 export default function VisitingHistory() {
-    console.log('VisitingHistory component rendering');
     const { customerName } = useParams();
     const navigate = useNavigate();
     
@@ -30,7 +30,7 @@ export default function VisitingHistory() {
 
     const fetchCustomers    = async () => {
         try {
-            const response = await fetch("http://localhost:8000/api/method/time_tracking_system.api.get_assigned_customers", {
+            const response = await fetch(`${getBackendUrl()}/api/method/time_tracking_system.api.get_assigned_customers`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json"
@@ -52,7 +52,7 @@ export default function VisitingHistory() {
 
     const fetchSalesPersons = async () => {
         try {
-            const response = await fetch("http://localhost:8000/api/method/time_tracking_system.api.get_sales_persons", {
+            const response = await fetch(`${getBackendUrl()}/api/method/time_tracking_system.api.get_sales_persons`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json"
@@ -64,7 +64,6 @@ export default function VisitingHistory() {
             
             if (response.ok) {
                 setSalesPersons(data.data || data.message || []);
-                console.log(visitHistory.length);
             } else {
                 console.error('Failed to fetch sales persons:', data.message);
             }
@@ -75,23 +74,20 @@ export default function VisitingHistory() {
     const fetchVisitHistory = async () => {
         try {
             // Build query parameters based on filters
-            let url = "http://localhost:8000/api/method/time_tracking_system.api.get_sales_visits_history?";
+            let url = `${getBackendUrl()}/api/method/time_tracking_system.api.get_sales_visits_history?`;
             const params = new URLSearchParams();
             
-            console.log('Current filters:', filters);
-            console.log('Current page:', currentPage);
+           
             
             // Add filters if they exist and are not 'all'
             if (filters.status && filters.status !== 'all') {
                 params.append('status', filters.status);
-                console.log('Adding status filter:', filters.status);
             } else {
                 console.log('Status filter not applied (value:', filters.status, ')');
             }
             
             if (filters.fromDate && filters.fromDate.trim() !== '') {
                 params.append('from_date', filters.fromDate);
-                console.log('Adding from_date filter:', filters.fromDate);
             } else {
                 console.log('From date filter not applied (value:', filters.fromDate, ')');
             }
@@ -105,14 +101,12 @@ export default function VisitingHistory() {
             
             if (filters.salesPerson && filters.salesPerson !== 'all') {
                 params.append('sales_person', filters.salesPerson);
-                console.log('Adding sales_person filter:', filters.salesPerson);
             } else {
                 console.log('Sales person filter not applied (value:', filters.salesPerson, ')');
             }
             
             if (filters.company && filters.company !== 'all') {
                 params.append('customer', filters.company);
-                console.log('Adding customer filter:', filters.company);
             } else {
                 console.log('Customer filter not applied (value:', filters.company, ')');
             }
@@ -121,9 +115,7 @@ export default function VisitingHistory() {
             params.append('limit', pageSize);
             params.append('limit_start', (currentPage - 1) * pageSize);
             
-            const finalUrl = url + params.toString();
-            console.log('Final API URL:', finalUrl);
-            
+            const finalUrl = url + params.toString(); 
             const response = await fetch(finalUrl, {
                 method: "GET",
                 headers: {
@@ -133,7 +125,7 @@ export default function VisitingHistory() {
             });
 
             const data = await response.json();
-            console.log('API Response:', data);
+            
             
             if (response.ok) {
                 setVisitHistory(data.message?.visits || []);
@@ -173,16 +165,15 @@ export default function VisitingHistory() {
     // Remove auto-fetch on filter changes - only fetch when Apply Filter is clicked
 
     const handleFilter = () => {
-        console.log('Filtering with:', filters);
+
         setCurrentPage(1); // Reset to first page when applying filters
         fetchVisitHistory();
     };
 
     const updateFilter = (key, value) => {
-        console.log('updateFilter called with:', key, '=', value);
         setFilters(prev => {
             const newFilters = { ...prev, [key]: value };
-            console.log('New filters state:', newFilters);
+
             return newFilters;
         });
     };

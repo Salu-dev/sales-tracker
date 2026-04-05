@@ -7,7 +7,6 @@ export default function BackendUrlModal({ onSave, initialUrl = '' }) {
     useEffect(() => {
         // Check if backend URL is already stored
         const storedUrl = localStorage.getItem('backendUrl');
-        console.log('Stored backend URL:', storedUrl);
         
         if (!storedUrl || storedUrl.trim() === '') {
             setShow(true);

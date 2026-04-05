@@ -28,7 +28,6 @@ export default function ScheduledVisit() {
             const data = await response.json();
             
             if (response.ok) {
-                console.log('API Response:', data);
                 setVisits(data.data || data.message || []);
             } else {
                 setError(data.message || 'Failed to fetch visits');

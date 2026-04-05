@@ -35,7 +35,7 @@ export default function CreateVisit() {
             }
         } catch (err) {
             setError("Error fetching customer data");
-            console.error(err);
+            
         } finally {
             setLoading(false);
         }
@@ -96,7 +96,7 @@ export default function CreateVisit() {
                 alert(errorMessage);
             }
         } catch (err) {
-            console.error(err);
+           
             alert("Error submitting visit");
         }
     };

@@ -13,7 +13,11 @@ export default function VisitDetails() {
     const [error, setError] = useState(null);
     const [updating, setUpdating] = useState(false);
     const [showStartVisitModal, setShowStartVisitModal] = useState(false);
+    const [showCheckInModal, setShowCheckInModal] = useState(false);
+    const [showCheckOutModal, setShowCheckOutModal] = useState(false);
     const [startDateTime, setStartDateTime] = useState('');
+    const [checkInDateTime, setCheckInDateTime] = useState('');
+    const [checkOutDateTime, setCheckOutDateTime] = useState('');
     const [notes, setNotes] = useState('');
     const [showNotesField, setShowNotesField] = useState(false);
     const [hasSalesAccess, setHasSalesAccess] = useState(false);
@@ -55,11 +59,25 @@ export default function VisitDetails() {
         }
     };
 
-    const handleCheckIn = async () => {
+    const handleCheckIn = () => {
+        setShowCheckInModal(true);
+        // Set default to current datetime
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        setCheckInDateTime(now.toISOString().slice(0, 16));
+    };
+
+    const confirmCheckIn = async () => {
+        if (!checkInDateTime) {
+            alert('Please select a check-in date and time');
+            return;
+        }
+
         setUpdating(true);
         try {
             const csrfToken = await getCSRFToken();
-            const location=await getCurrentLocation()
+            const location = await getCurrentLocation();
+            
             const response = await fetch(`${getBackendUrl()}/api/method/time_tracking_system.api.check_in_visit`, {
                 method: 'POST',
                 headers: {
@@ -70,40 +88,82 @@ export default function VisitDetails() {
                 body: JSON.stringify({
                     visit_name: visitId,
                     latitude: location.coords.latitude,
-                    longitude: location.coords.longitude
+                    longitude: location.coords.longitude,
+                    check_in_time: checkInDateTime
                 })
             });
 
             const data = await response.json();
             if (response.ok) {
+                if (data.message) {
+                    alert(data.message);
+                }
                 // Refresh visit details after check-in
                 fetchVisitDetails();
+                setShowCheckInModal(false);
             } else {
-                // More detailed error logging
-                console.error('Check-in Error:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    data: data
-                });
-                setError(data.message || data.exc || `Failed to check in (${response.status}: ${response.statusText})`);
+                // Handle API error messages
+                let errorMessage = "Failed to check in";
+                if (data._server_messages) {
+                    try {
+                        // Handle the specific format from your API
+                        const serverMessages = data._server_messages;
+                        if (typeof serverMessages === 'string') {
+                            const messages = JSON.parse(serverMessages);
+                            if (Array.isArray(messages) && messages.length > 0) {
+                                const firstMsg = typeof messages[0] === 'string' ? JSON.parse(messages[0]) : messages[0];
+                                errorMessage = firstMsg.message || firstMsg;
+                            }
+                        } else if (serverMessages.message) {
+                            errorMessage = serverMessages.message;
+                        }
+                    } catch (e) {
+                        // Fallback to message if available
+                        if (data.message) {
+                            errorMessage = data.message;
+                        }
+                    }
+                } else if (data.message) {
+                    errorMessage = data.message;
+                } else if (data.exc) {
+                    errorMessage = data.exc;
+                }
+                setError(errorMessage);
             }
         } catch (err) {
+            let errorMessage = 'Failed to check in';
             if (err.code === 1) {
-                setError('Location access denied. Please enable location services to check in.');
+                errorMessage = 'Location access denied. Please enable location services to check in.';
             } else if (err.code === 2) {
-                setError('Location unavailable. Please try again.');
+                errorMessage = 'Location unavailable. Please try again.';
             } else if (err.code === 3) {
-                setError('Location request timed out. Please try again.');
+                errorMessage = 'Location request timed out. Please try again.';
             } else {
-                setError(err.message || 'Failed to check in');
+                errorMessage = err.message || 'Failed to check in';
             }
+            alert(errorMessage);
+            setError(errorMessage);
         } finally {
             setUpdating(false);
         }
     };
 
-    const handleCheckOut = async () => {
-        if (!window.confirm('Are you sure you want to check out?')) {
+    const cancelCheckIn = () => {
+        setShowCheckInModal(false);
+        setCheckInDateTime('');
+    };
+
+    const handleCheckOut = () => {
+        setShowCheckOutModal(true);
+        // Set default to current datetime
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        setCheckOutDateTime(now.toISOString().slice(0, 16));
+    };
+
+    const confirmCheckOut = async () => {
+        if (!checkOutDateTime) {
+            setError('Please select a check-out date and time');
             return;
         }
 
@@ -123,29 +183,58 @@ export default function VisitDetails() {
                 body: JSON.stringify({
                     visit_name: visitId,
                     latitude: location.coords.latitude,
-                    longitude: location.coords.longitude
+                    longitude: location.coords.longitude,
+                    check_out_time: checkOutDateTime
                 })
             });
-            console.log('Check-out Response:', response);
 
             const data = await response.json();
             if (response.ok) {
+                if (data.message) {
+                    alert(data.message);
+                }
                 // Refresh visit details after check-out
                 fetchVisitDetails();
+                setShowCheckOutModal(false);
             } else {
-                // More detailed error logging
-                console.error('Check-out Error:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    data: data
-                });
-                setError(data.message || data.exc || `Failed to check out (${response.status}: ${response.statusText})`);
+                // Handle API error messages
+                let errorMessage = "Failed to check out";
+                if (data._server_messages) {
+                    try {
+                        // Handle the specific format from your API
+                        const serverMessages = data._server_messages;
+                        if (typeof serverMessages === 'string') {
+                            const messages = JSON.parse(serverMessages);
+                            if (Array.isArray(messages) && messages.length > 0) {
+                                const firstMsg = typeof messages[0] === 'string' ? JSON.parse(messages[0]) : messages[0];
+                                errorMessage = firstMsg.message || firstMsg;
+                            }
+                        } else if (serverMessages.message) {
+                            errorMessage = serverMessages.message;
+                        }
+                    } catch (e) {
+                        // Fallback to message if available
+                        if (data.message) {
+                            errorMessage = data.message;
+                        }
+                    }
+                } else if (data.message) {
+                    errorMessage = data.message;
+                } else if (data.exc) {
+                    errorMessage = data.exc;
+                }
+                setError(errorMessage);
             }
         } catch (err) {
             setError(err.message || 'Failed to check out');
         } finally {
             setUpdating(false);
         }
+    };
+
+    const cancelCheckOut = () => {
+        setShowCheckOutModal(false);
+        setCheckOutDateTime('');
     };
 
     const handleCancelVisit = async () => {
@@ -173,6 +262,10 @@ export default function VisitDetails() {
             const data = await response.json();
             
             if (response.ok) {
+                
+                if (data.message) {
+                    alert(data.message);
+                }
                 // Refresh visit details after cancellation
                 fetchVisitDetails();
             } else {
@@ -224,14 +317,44 @@ export default function VisitDetails() {
             const data = await response.json();
             
             if (response.ok) {
+                 if (data.message) {
+                    alert(data.message);
+                }
                 // Refresh visit details after starting
                 fetchVisitDetails();
                 setShowStartVisitModal(false);
             } else {
-                setError(data.message || 'Failed to start visit');
+                // Handle API error messages
+                let errorMessage = "Failed to start visit";
+                if (data._server_messages) {
+                    try {
+                        // Handle the specific format from your API
+                        const serverMessages = data._server_messages;
+                        if (typeof serverMessages === 'string') {
+                            const messages = JSON.parse(serverMessages);
+                            if (Array.isArray(messages) && messages.length > 0) {
+                                const firstMsg = typeof messages[0] === 'string' ? JSON.parse(messages[0]) : messages[0];
+                                errorMessage = firstMsg.message || firstMsg;
+                            }
+                        } else if (serverMessages.message) {
+                            errorMessage = serverMessages.message;
+                        }
+                    } catch (e) {
+                        console.error("Error parsing server messages", e);
+                        // Fallback to message if available
+                        if (data.message) {
+                            errorMessage = data.message;
+                        }
+                    }
+                } else if (data.message) {
+                    errorMessage = data.message;
+                } else if (data.exc) {
+                    errorMessage = data.exc;
+                }
+                setError(errorMessage);
             }
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'Failed to start visit');
         } finally {
             setUpdating(false);
         }
@@ -613,6 +736,158 @@ export default function VisitDetails() {
                                     }}
                                 >
                                     {updating ? 'Starting...' : 'Update'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Check In Modal */}
+                {showCheckInModal && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000
+                    }}>
+                        <div style={{
+                            backgroundColor: 'white',
+                            padding: '30px',
+                            borderRadius: '10px',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                            maxWidth: '400px',
+                            width: '90%'
+                        }}>
+                            <h3 style={{ marginBottom: '20px', color: '#333' }}>Check In Time</h3>
+                            
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                                    Check In Date and Time:
+                                </label>
+                                <input
+                                    type="datetime-local"
+                                    value={checkInDateTime}
+                                    onChange={(e) => setCheckInDateTime(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px',
+                                        border: '1px solid #ccc',
+                                        borderRadius: '4px',
+                                        fontSize: '16px'
+                                    }}
+                                />
+                            </div>
+                            
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                <button
+                                    onClick={cancelCheckIn}
+                                    disabled={updating}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: '#6c757d',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: updating ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmCheckIn}
+                                    disabled={updating}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: '#28a745',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: updating ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {updating ? 'Checking In...' : 'Check In'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Check Out Modal */}
+                {showCheckOutModal && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000
+                    }}>
+                        <div style={{
+                            backgroundColor: 'white',
+                            padding: '30px',
+                            borderRadius: '10px',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                            maxWidth: '400px',
+                            width: '90%'
+                        }}>
+                            <h3 style={{ marginBottom: '20px', color: '#333' }}>Check Out Time</h3>
+                            
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                                    Check Out Date and Time:
+                                </label>
+                                <input
+                                    type="datetime-local"
+                                    value={checkOutDateTime}
+                                    onChange={(e) => setCheckOutDateTime(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px',
+                                        border: '1px solid #ccc',
+                                        borderRadius: '4px',
+                                        fontSize: '16px'
+                                    }}
+                                />
+                            </div>
+                            
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                <button
+                                    onClick={cancelCheckOut}
+                                    disabled={updating}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: '#6c757d',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: updating ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmCheckOut}
+                                    disabled={updating}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: '#ffc107',
+                                        color: 'black',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: updating ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {updating ? 'Checking Out...' : 'Check Out'}
                                 </button>
                             </div>
                         </div>
